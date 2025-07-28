@@ -2,7 +2,7 @@ export interface MeditationEntry {
   id: string;
   type: "Vipassana" | "Body Scan" | "Compasión" | "Otra";
   date: string; // ISO date (e.g. "2025-06-30")
-  durationMinutes: number;
+  duration: number;
   comments?: string;
   tags?: string[]; // por ejemplo ["mañana", "estrés", "respiración"]
   emotionBefore?: string; // opcional: cómo se sentía antes

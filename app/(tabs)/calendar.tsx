@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import {
   StyleSheet,
   Pressable,
-  View,
   Modal,
   TextInput,
   Image,
+  FlatList,
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -13,16 +13,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { Picker } from "@react-native-picker/picker";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MeditationEntry } from "@/types";
 
-export default function TabTwoScreen() {
+export default function Calendar() {
   const [daysInMonth, setDaysInMonth] = useState<
     { day: number; monthType: string }[]
   >([]);
+  const [meditations, setMeditations] = useState<MeditationEntry[]>([]);
+  const [period, setPeriod] = useState([]);
+  const { view } = useLocalSearchParams();
+
   //current date que vemos ahora en el calendario
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState({ day: 0, monthType: "" });
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(false);
+  const [selectedOption, setSelectedOption] = useState("");
+  const [duration, setDuration] = useState("0");
+  const [notes, setNotes] = useState("");
   const weekDays = ["D", "L", "M", "M", "J", "V", "S"];
 
   // Guardar el mes y año y dia TODAY
@@ -33,6 +42,18 @@ export default function TabTwoScreen() {
   useEffect(() => {
     updateDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   }, [currentDate]);
+  useEffect(() => {
+    if (view === "meditations") {
+      AsyncStorage.getItem("meditations").then((data) => {
+        if (data) setMeditations(JSON.parse(data));
+      });
+    }
+    if (view === "period") {
+      AsyncStorage.getItem("period").then((data) => {
+        if (data) setPeriod(JSON.parse(data));
+      });
+    }
+  }, []);
 
   function updateDaysInMonth(year: number, month: number) {
     const days = new Date(year, month + 1, 0).getDate();
@@ -64,6 +85,7 @@ export default function TabTwoScreen() {
   }
   function isCurrentDay(day: any): boolean {
     return day.day === actualDay && day.monthType === "current";
+    // && now Date . month es igual al mes current
   }
   function isSelectedDay(d: { day: number; monthType: string }) {
     return selectedDate.day === d.day && selectedDate.monthType === d.monthType;
@@ -86,6 +108,27 @@ export default function TabTwoScreen() {
     setCurrentDate(newDate);
     updateDaysInMonth(newDate.getFullYear(), newDate.getMonth());
   }
+
+  //pasar luego a servicio...
+  const saveTrack = async () => {
+    const newMeditation = {
+      id: Date.now(),
+      type: selectedOption,
+      date: new Date().toISOString(),
+      duration,
+      comments: notes,
+    };
+
+    try {
+      const stored = await AsyncStorage.getItem("meditations");
+      const parsed = stored ? JSON.parse(stored) : [];
+      parsed.push(newMeditation);
+      await AsyncStorage.setItem("meditations", JSON.stringify(parsed));
+      setMeditations(parsed);
+    } catch (err) {
+      console.error("❌ Error guardando meditación", err);
+    }
+  };
 
   return (
     <SafeAreaView>
@@ -159,8 +202,10 @@ export default function TabTwoScreen() {
 
               <ThemedView style={styles.row}>
                 <TextInput
+                  value={duration}
                   placeholder="Tiempo (min)"
                   keyboardType="numeric"
+                  onChangeText={setDuration}
                   style={[styles.input, { flex: 1, width: 120 }]}
                 />
                 <Picker
@@ -177,6 +222,8 @@ export default function TabTwoScreen() {
               <TextInput
                 placeholder="Notas"
                 multiline
+                value={notes}
+                onChangeText={setNotes}
                 style={[styles.input, { height: 80 }]}
               />
 
@@ -187,7 +234,18 @@ export default function TabTwoScreen() {
                     setModalVisible(!modalVisible);
                   }}
                 >
-                  <ThemedText style={styles.confirmText}>Guardar</ThemedText>
+                  <ThemedText
+                    onPress={() => {
+                      saveTrack();
+                      setModalVisible(false);
+                      setDuration("0");
+                      setNotes("");
+                      setSelectedOption("vipassana");
+                    }}
+                    style={styles.confirmText}
+                  >
+                    Guardar
+                  </ThemedText>
                 </Pressable>
 
                 <Pressable
@@ -210,11 +268,54 @@ export default function TabTwoScreen() {
           <ThemedText style={styles.buttonText}>+</ThemedText>
         </Pressable>
       </ThemedView>
+
+      <FlatList
+        data={meditations}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ThemedView style={styles.card}>
+            <ThemedText style={styles.date}>
+              {new Date(item.date).toLocaleDateString()}
+            </ThemedText>
+            <ThemedText style={styles.text}>Tipo: {item.type}</ThemedText>
+            <ThemedText style={styles.text}>
+              Duración: {item.duration} min
+            </ThemedText>
+            {item.comments ? (
+              <ThemedText style={styles.notes}>📝 {item.comments}</ThemedText>
+            ) : null}
+          </ThemedView>
+        )}
+      ></FlatList>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: 10,
+    backgroundColor: "#e3fce3",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    elevation: 2,
+  },
+  date: {
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#2E6D2E",
+  },
+  text: {
+    fontSize: 14,
+    color: "#333",
+  },
+  notes: {
+    fontStyle: "italic",
+    marginTop: 4,
+    color: "#555",
+  },
   buttonWrapper: {
     alignItems: "center",
     marginTop: 20,

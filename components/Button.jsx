@@ -2,7 +2,7 @@ import { Image, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 
 export default function SectionButton(props) {
-  const { icon, text, meditation, period } = props;
+  const { icon, text, meditation, period, onPress } = props;
 
   // Icono con color opcional
   const iconComponent = icon ? (
@@ -35,6 +35,7 @@ export default function SectionButton(props) {
 
   return (
     <Pressable
+      onPress={onPress}
       style={[
         styles.button,
         {

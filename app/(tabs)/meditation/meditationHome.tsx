@@ -23,13 +23,23 @@ export default function MeditationScreen() {
         <SectionButton
           meditation
           text="Calendario"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/calendar",
+              params: { view: "meditations" },
+            })
+          }
         ></SectionButton>
 
         <SectionButton
           meditation
           text="Mantras"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/calendar",
+              params: { view: "meditations" },
+            })
+          }
         ></SectionButton>
 
         <SectionButton
