@@ -38,3 +38,5 @@ export interface StorageStructure {
   meditation: MeditationEntry[];
   period: PeriodEntry[];
 }
+
+export type selectedDate = { day: number; monthType: string };

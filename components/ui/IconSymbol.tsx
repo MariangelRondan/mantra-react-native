@@ -23,6 +23,8 @@ const MAPPING: IconMapping = {
   "show.chart.fill": "show-chart",
   "back.fill": "arrow-back-ios-new",
   "next.fill": "arrow-forward-ios",
+  "toggle.on": "self-improvement",
+  "toggle.off": "female",
 };
 
 /**
