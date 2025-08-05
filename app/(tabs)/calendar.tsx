@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   StyleSheet,
   Pressable,
@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { Picker } from "@react-native-picker/picker";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   BleedingColor,
@@ -28,10 +28,11 @@ export default function Calendar() {
     { day: number; monthType: string }[]
   >([]);
   const [meditations, setMeditations] = useState<MeditationEntry[]>([]);
-  const [selectedDateMeditation, setSelectedMeditation] = useState<
+  const [selectedDateMeditation, setSelectedDateMeditation] = useState<
     MeditationEntry[]
   >([]);
-  const [period, setPeriod] = useState([]);
+  const [selectedDatePeriod, setSelectedDatePeriod] = useState<PeriodDay[]>([]);
+  const [period, setPeriod] = useState<PeriodDay[]>([]);
   const { view } = useLocalSearchParams(); // medit o pediod
   const [calendarView, setCalendarView] = useState<string>("meditations");
   //current date que vemos ahora en el calendario
@@ -52,67 +53,136 @@ export default function Calendar() {
   const [notes, setNotes] = useState("");
   const weekDays = ["D", "L", "M", "M", "J", "V", "S"];
   const [diasMeditados, setDiasMeditados] = useState<Set<string>>(new Set());
-
+  const [diasPeriodo, setDiasPeriodo] = useState<Set<string>>(new Set());
   // Guardar el mes y año y dia TODAY
   const actualMonth: number = new Date().getMonth();
   const actualYear: number = new Date().getFullYear();
   const actualDay: number = new Date().getDate();
 
+  useFocusEffect(
+    useCallback(() => {
+      if (typeof view === "string") {
+        setCalendarView(view);
+      }
+
+      if (view === "meditations") {
+        AsyncStorage.getItem("meditations").then((data) => {
+          if (data) setMeditations(JSON.parse(data));
+          initializEntries();
+        });
+      }
+
+      if (view === "period") {
+        AsyncStorage.getItem("period").then((data) => {
+          if (data) setPeriod(JSON.parse(data));
+          initializEntries();
+        });
+      }
+    }, [view])
+  );
+
   useEffect(() => {
     updateDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   }, [currentDate]);
-  useEffect(() => {
-    const selectedDateMeditation = meditations?.filter((update) => {
-      const selectedDateStr = selectedDate?.toISOString()?.split("T")[0];
-      if (!update.date) {
-        console.warn("update.date es undefined o null:", update);
-        return false;
-      }
 
-      const itemDateObj = new Date(update.date);
-      if (isNaN(itemDateObj.getTime())) {
-        console.error("Fecha inválida en update.date:", update.date);
-        return false;
-      }
-
-      const itemDateStr = itemDateObj.toISOString().split("T")[0];
-      return itemDateStr === selectedDateStr;
-    });
-    setSelectedMeditation(selectedDateMeditation);
-  }, [selectedDate]);
   useEffect(() => {
-    console.log(meditations);
     if (typeof view === "string") {
       setCalendarView(view);
     }
-    if (view === "meditations") {
+  }, [view]);
+
+  useEffect(() => {
+    if (calendarView === "meditations") {
+      const selectedDateMeditation = meditations?.filter((update) => {
+        const selectedDateStr = selectedDate?.toISOString()?.split("T")[0];
+        if (!update.date) {
+          console.warn("update.date es undefined o null:", update);
+          return false;
+        }
+
+        const itemDateObj = new Date(update.date);
+        if (isNaN(itemDateObj.getTime())) {
+          console.error("Fecha inválida en update.date:", update.date);
+          return false;
+        }
+
+        const itemDateStr = itemDateObj.toISOString().split("T")[0];
+        return itemDateStr === selectedDateStr;
+      });
+      setSelectedDateMeditation(selectedDateMeditation);
+    } else {
+      const selectedDatePeriod = period?.filter((update) => {
+        const selectedDateStr = selectedDate?.toISOString()?.split("T")[0];
+        if (!update.date) {
+          console.warn("update.date es undefined o null:", update);
+          return false;
+        }
+
+        const itemDateObj = new Date(update.date);
+        if (isNaN(itemDateObj.getTime())) {
+          console.error("Fecha inválida en update.date:", update.date);
+          return false;
+        }
+
+        const itemDateStr = itemDateObj.toISOString().split("T")[0];
+        return itemDateStr === selectedDateStr;
+      });
+      setSelectedDatePeriod(selectedDatePeriod);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (calendarView === "meditations") {
       AsyncStorage.getItem("meditations").then((data) => {
         if (data) setMeditations(JSON.parse(data));
+        initializEntries();
       });
     }
-    if (view === "period") {
+    if (calendarView === "period") {
       AsyncStorage.getItem("period").then((data) => {
         if (data) setPeriod(JSON.parse(data));
+        initializEntries();
       });
     }
-    initializeMeditations();
-  }, []);
+  }, [calendarView]);
 
-  function initializeMeditations(): void {
-    setDiasMeditados(new Set());
-    meditations?.forEach((update: MeditationEntry) => {
-      if (!update.date) {
-        console.warn("Fecha inválida detectada:", update);
-        return;
-      }
-      let dateObj = new Date(update.date);
-      if (isNaN(dateObj.getTime())) {
-        console.error("Fecha inválida al convertir:", update.date);
-        return;
-      }
-      let e = dateObj.toISOString().split("T")[0];
-      setDiasMeditados((prev) => new Set([...prev, e]));
-    });
+  function initializEntries(): void {
+    if (calendarView === "meditations") {
+      setDiasMeditados(new Set());
+      meditations?.forEach((update: MeditationEntry) => {
+        if (!update.date) {
+          console.warn("Fecha inválida detectada:", update);
+          return;
+        }
+        let dateObj = new Date(update.date);
+
+        if (isNaN(dateObj.getTime())) {
+          console.error("Fecha inválida al convertir:", update.date);
+          return;
+        }
+        let e = dateObj.toISOString().split("T")[0];
+        setDiasMeditados((prev) => new Set([...prev, e]));
+      });
+    } else {
+      setDiasPeriodo(new Set());
+      period?.forEach((update: PeriodDay) => {
+        if (!update.date) {
+          console.warn("Fecha inválida detectada:", update);
+          return;
+        }
+        let dateObj = new Date(update.date);
+        if (isNaN(dateObj.getTime())) {
+          console.error("Fecha inválida al convertir:", update.date);
+          return;
+        }
+        if (isNaN(dateObj.getTime())) {
+          console.error("Fecha inválida al convertir:", update.date);
+          return;
+        }
+        let e = dateObj.toISOString().split("T")[0];
+        setDiasPeriodo((prev) => new Set([...prev, e]));
+      });
+    }
   }
 
   function updateDaysInMonth(year: number, month: number) {
@@ -180,6 +250,31 @@ export default function Calendar() {
     return diasMeditados.has(formattedDate);
   }
 
+  //   const getPeriodDayStyle = (day) => {
+  //   const bleeding = getBleedingLevelForDay(day); // leve | moderado | fuerte
+  //   switch (bleeding) {
+  //     case "leve":
+  //       return styles.periodLeve;
+  //     case "moderado":
+  //       return styles.periodModerado;
+  //     case "fuerte":
+  //       return styles.periodFuerte;
+  //     default:
+  //       return styles.currentMonthDayPeriod;
+  //   }
+  // };
+
+  function isPeriodDay(day: number): boolean {
+    const date = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      day
+    );
+
+    const formattedDate = date?.toISOString()?.split("T")[0];
+    return diasPeriodo.has(formattedDate);
+  }
+
   function handleNextMonth() {
     setSelectedDate(undefined);
     const newDate = new Date(currentDate);
@@ -218,22 +313,41 @@ export default function Calendar() {
 
       painLevel: painLevel,
     };
-    console.log(newMeditation);
     try {
       if (calendarView === "meditations") {
         const stored = await AsyncStorage.getItem("meditations");
         const parsed = stored ? JSON.parse(stored) : [];
         parsed.push(newMeditation);
-        console.log(parsed);
         await AsyncStorage.setItem("meditations", JSON.stringify(parsed));
         setMeditations(parsed);
       } else {
         const stored = await AsyncStorage.getItem("period");
         const parsed = stored ? JSON.parse(stored) : [];
         parsed.push(newPeriod);
-        console.log(parsed);
         await AsyncStorage.setItem("period", JSON.stringify(parsed));
         setPeriod(parsed);
+      }
+    } catch (err) {
+      console.error("❌ Error guardando meditación", err);
+    }
+  };
+
+  const deleteItem = async (item: MeditationEntry | PeriodDay) => {
+    try {
+      if (calendarView === "meditations") {
+        const stored = await AsyncStorage.getItem("meditations");
+        const parsed = stored ? JSON.parse(stored) : [];
+        const updated = parsed.filter(
+          (med: MeditationEntry) => med.id !== item.id
+        );
+        await AsyncStorage.setItem("meditations", JSON.stringify(updated));
+        setMeditations(updated);
+      } else {
+        const stored = await AsyncStorage.getItem("period");
+        const parsed = stored ? JSON.parse(stored) : [];
+        const updated = parsed.filter((per: PeriodDay) => per.id !== item.id);
+        await AsyncStorage.setItem("period", JSON.stringify(updated));
+        setPeriod(updated);
       }
     } catch (err) {
       console.error("❌ Error guardando meditación", err);
@@ -312,13 +426,25 @@ export default function Calendar() {
                   ? styles.currentMonthDayMeditation
                   : styles.currentMonthDayPeriod
                 : styles.otherMonth,
-              isMeditationDay(d.day) && styles.meditationDay,
+              isMeditationDay(d.day) &&
+                calendarView === "meditations" &&
+                styles.meditationDay,
+              isPeriodDay(d.day) &&
+                calendarView === "period" &&
+                styles.periodDay,
               isCurrentDay(d) && styles.currentDay,
               isSelectedDay(d) && styles.selectedDate,
             ]}
             onPress={() => handleSelectDay(d)}
           >
-            <ThemedText>{d.day}</ThemedText>
+            <ThemedText
+              style={[
+                isPeriodDay(d.day) &&
+                  calendarView === "period" && { color: "#fcb9b2" },
+              ]}
+            >
+              {d.day}
+            </ThemedText>
           </Pressable>
         ))}
       </ThemedView>
@@ -391,11 +517,11 @@ export default function Calendar() {
                     onValueChange={setBleedingColor}
                     style={[styles.input, { marginBottom: 10 }]}
                   >
-                    <Picker.Item label="Rojo claro" value="bright_red" />
-                    <Picker.Item label="Rojo intenso" value="dark_red" />
-                    <Picker.Item label="Marrón" value="brown" />
-                    <Picker.Item label="Rosado" value="rosado" />
-                    <Picker.Item label="Amarillento" value="yellow" />
+                    <Picker.Item label="Rojo claro" value="Rojo claro" />
+                    <Picker.Item label="Rojo intenso" value="Rojo intenso" />
+                    <Picker.Item label="Marrón" value="Marrón" />
+                    <Picker.Item label="Rosado" value="Rosado" />
+                    <Picker.Item label="Amarillento" value="Amarillento" />
                   </Picker>
                   <ThemedText>Es el inicio del período?</ThemedText>
 
@@ -479,51 +605,71 @@ export default function Calendar() {
           <ThemedText style={styles.buttonText}>+</ThemedText>
         </Pressable>
       </ThemedView>
-      {selectedDateMeditation.length ? (
+      {selectedDateMeditation.length && calendarView === "meditations" ? (
         <FlatList
           data={selectedDateMeditation}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ThemedView
-              style={[
-                styles.card,
-                calendarView === "period" && styles.cardPeriod,
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.date,
-                  calendarView === "period" && styles.periodText,
-                ]}
-              >
+            <ThemedView style={[styles.card]}>
+              <ThemedText style={[styles.date]}>
                 {new Date(item.date).toLocaleDateString()}
               </ThemedText>
-              <ThemedText
-                style={[
-                  styles.text,
-                  calendarView === "period" && styles.periodText,
-                ]}
-              >
-                Tipo: {item.type}
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.text,
-                  calendarView === "period" && styles.periodText,
-                ]}
-              >
+              <ThemedText style={[styles.text]}>Tipo: {item.type}</ThemedText>
+              <ThemedText style={[styles.text]}>
                 Duración: {item.duration} min
               </ThemedText>
               {item.comments ? (
+                <ThemedText style={[styles.notes]}>
+                  📝 {item.comments}
+                </ThemedText>
+              ) : null}
+              <Pressable onPress={() => deleteItem(item)}>
+                <IconSymbol name="delete.fill" size={22} color={"#11111"} />
+              </Pressable>
+            </ThemedView>
+          )}
+        />
+      ) : selectedDatePeriod.length && calendarView === "period" ? (
+        <FlatList
+          data={selectedDatePeriod}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ThemedView style={[styles.cardPeriod]}>
+              <ThemedText style={[styles.periodText]}>
+                {new Date(item.date).toLocaleDateString()}
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                Color: {item.bleedingColor}
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                Sangrado: {item.bleedingLevel} min
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                isPeriodStart: {item.isPeriodStart}
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                isPeriodEnd: {item.isPeriodEnd}
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                Mood: {item.mood}
+              </ThemedText>
+              <ThemedText style={[styles.periodText]}>
+                Dolor Level: {item.painLevel}
+              </ThemedText>
+
+              {item.notes ? (
                 <ThemedText
                   style={[
                     styles.notes,
                     calendarView === "period" && styles.periodNotes,
                   ]}
                 >
-                  📝 {item.comments}
+                  📝 {item.notes}
                 </ThemedText>
               ) : null}
+              <Pressable onPress={() => deleteItem(item)}>
+                <IconSymbol name="delete.fill" size={22} color={"#11111"} />
+              </Pressable>
             </ThemedView>
           )}
         />
@@ -660,6 +806,7 @@ const styles = StyleSheet.create({
   meditationDay: {
     backgroundColor: "#13867e",
   },
+  periodDay: { backgroundColor: "#a51c30" },
   selectedDate: {
     shadowColor: "#811382",
     shadowOffset: { width: 0, height: 0 },
@@ -668,7 +815,6 @@ const styles = StyleSheet.create({
     elevation: 5, // necesario para Android
     borderWidth: 2,
   },
-
   toggleContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -686,17 +832,13 @@ const styles = StyleSheet.create({
   active: {
     backgroundColor: "#13867e",
   },
-
-  // Fondo desenfocado
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)", // semi-transparente
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
-    backdropFilter: "blur(6px)", // funciona en web, en mobile usamos otra técnica (ver nota)
+    backdropFilter: "blur(6px)",
   },
-
-  // Contenido del modal
   modalView: {
     backgroundColor: "white",
     borderRadius: 20,
@@ -708,25 +850,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-
   modalHeader: {
     alignItems: "center",
     marginBottom: 12,
   },
-
   image: {
     width: 80,
     height: 80,
     resizeMode: "contain",
   },
-
   title: {
     fontWeight: "600",
     fontSize: 18,
     marginVertical: 10,
     textAlign: "center",
   },
-
   input: {
     backgroundColor: "#F0F0F0",
     borderRadius: 10,
@@ -734,7 +872,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 16,
   },
-
   row: {
     flexDirection: "row",
     gap: 10,

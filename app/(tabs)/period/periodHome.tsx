@@ -21,7 +21,12 @@ export default function PeriodHome() {
         <SectionButton
           period
           text="Calendario"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/calendar",
+              params: { view: "period" },
+            })
+          }
         ></SectionButton>
 
         <SectionButton

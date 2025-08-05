@@ -25,6 +25,7 @@ const MAPPING: IconMapping = {
   "next.fill": "arrow-forward-ios",
   "toggle.on": "self-improvement",
   "toggle.off": "female",
+  "delete.fill": "delete",
 };
 
 /**
