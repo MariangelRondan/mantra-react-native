@@ -10,15 +10,26 @@ export interface MeditationEntry {
 }
 
 export interface PeriodDay {
+  id: string;
   date: string;
-  bleedingLevel?: "Ninguno" | "Leve" | "Moderado" | "Abundante";
-  bleedingColor?: "Rojo claro" | "Rojo intenso" | "Marrón" | "Rosado" | "Negro";
+  bleedingLevel?: BleedingLevel;
+  bleedingColor?: BleedingColor;
   notes?: string;
-  isPeriodStart?: boolean;
-  painLevel?: "Ninguno" | "Leve" | "Moderado" | "Fuerte";
-  symptoms?: string[];
+  isPeriodStart: boolean;
+  isPeriodEnd: boolean;
+  painLevel?: PainLevel;
   mood?: string;
 }
+export type BleedingColor =
+  | "Rojo claro"
+  | "Rojo intenso"
+  | "Marrón"
+  | "Rosado"
+  | "Amarillento";
+
+export type BleedingLevel = "Leve" | "Moderado" | "Abundante";
+
+export type PainLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface PeriodEntry {
   id: string;

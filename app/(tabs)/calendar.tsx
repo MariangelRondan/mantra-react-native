@@ -15,7 +15,13 @@ import { Picker } from "@react-native-picker/picker";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MeditationEntry } from "@/types";
+import {
+  BleedingColor,
+  BleedingLevel,
+  MeditationEntry,
+  PainLevel,
+  PeriodDay,
+} from "@/types";
 
 export default function Calendar() {
   const [daysInMonth, setDaysInMonth] = useState<
@@ -27,12 +33,21 @@ export default function Calendar() {
   >([]);
   const [period, setPeriod] = useState([]);
   const { view } = useLocalSearchParams(); // medit o pediod
-  const [calendarView, setCalendarView] = useState<string>("meditation");
+  const [calendarView, setCalendarView] = useState<string>("meditations");
   //current date que vemos ahora en el calendario
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<any>(new Date());
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("");
+  const [selectedMeditationType, setSelectedMeditationType] =
+    useState("vipassana");
+  const [bleedingLevel, setBleedingLevel] = useState<BleedingLevel>("Leve");
+
+  const [bleedingColor, setBleedingColor] = useState<BleedingColor>("Rosado");
+  const [painLevel, setPainLevel] = useState<PainLevel>(1);
+
+  const [periodStart, setPeriodStart] = useState(false);
+  const [periodEnd, setPeriodEnd] = useState(false);
+
   const [duration, setDuration] = useState("0");
   const [notes, setNotes] = useState("");
   const weekDays = ["D", "L", "M", "M", "J", "V", "S"];
@@ -137,7 +152,7 @@ export default function Calendar() {
     );
   }
   function isSelectedDay(d: { day: number; monthType: string }) {
-    return selectedDate.getDate() === d.day;
+    return selectedDate?.getDate() === d.day;
   }
 
   function handleSelectDay(dayInfo: { day: number; monthType: string }) {
@@ -185,19 +200,41 @@ export default function Calendar() {
   //TODO: pasar luego a servicio...
   const saveTrack = async () => {
     const newMeditation = {
-      id: Date.now(),
-      type: selectedOption,
-      date: new Date().toISOString(),
+      id: Date.now().toString(),
+      type: selectedMeditationType,
+      date: selectedDate.toISOString(),
       duration,
       notes,
     };
 
+    const newPeriod: PeriodDay = {
+      id: Date.now().toString(),
+      date: selectedDate.toISOString(),
+      bleedingLevel,
+      bleedingColor,
+      notes,
+      isPeriodStart: periodStart,
+      isPeriodEnd: periodEnd,
+
+      painLevel: painLevel,
+    };
+    console.log(newMeditation);
     try {
-      const stored = await AsyncStorage.getItem("meditations");
-      const parsed = stored ? JSON.parse(stored) : [];
-      parsed.push(newMeditation);
-      await AsyncStorage.setItem("meditations", JSON.stringify(parsed));
-      setMeditations(parsed);
+      if (calendarView === "meditations") {
+        const stored = await AsyncStorage.getItem("meditations");
+        const parsed = stored ? JSON.parse(stored) : [];
+        parsed.push(newMeditation);
+        console.log(parsed);
+        await AsyncStorage.setItem("meditations", JSON.stringify(parsed));
+        setMeditations(parsed);
+      } else {
+        const stored = await AsyncStorage.getItem("period");
+        const parsed = stored ? JSON.parse(stored) : [];
+        parsed.push(newPeriod);
+        console.log(parsed);
+        await AsyncStorage.setItem("period", JSON.stringify(parsed));
+        setPeriod(parsed);
+      }
     } catch (err) {
       console.error("❌ Error guardando meditación", err);
     }
@@ -271,11 +308,13 @@ export default function Calendar() {
             style={[
               styles.day,
               d.monthType === "current"
-                ? styles.currentMonth
+                ? calendarView === "meditations"
+                  ? styles.currentMonthDayMeditation
+                  : styles.currentMonthDayPeriod
                 : styles.otherMonth,
-              isMeditationDay(d.day) ? styles.meditationDay : "",
-              isCurrentDay(d) ? styles.currentDay : "",
-              isSelectedDay(d) ? styles.selectedDate : "",
+              isMeditationDay(d.day) && styles.meditationDay,
+              isCurrentDay(d) && styles.currentDay,
+              isSelectedDay(d) && styles.selectedDate,
             ]}
             onPress={() => handleSelectDay(d)}
           >
@@ -297,55 +336,127 @@ export default function Calendar() {
                   style={styles.image}
                   source={require("@/assets/images/meditation-window.png")}
                 />
-                <ThemedText style={styles.title}>Update de hoy </ThemedText>
+                <ThemedText style={styles.title}>Update de hoy</ThemedText>
               </ThemedView>
 
-              <ThemedView style={styles.row}>
-                <TextInput
-                  value={duration}
-                  placeholder="Tiempo (min)"
-                  keyboardType="numeric"
-                  onChangeText={setDuration}
-                  style={[styles.input, { flex: 1, width: 120 }]}
-                />
-                <Picker
-                  selectedValue={selectedOption}
-                  style={[styles.input, { width: 160 }]}
-                  onValueChange={(itemValue) => setSelectedOption(itemValue)}
-                >
-                  <Picker.Item label="Vipassana" value="vipassana" />
-                  <Picker.Item label="Body scan" value="body_scan" />
-                  <Picker.Item label="Compasión" value="compasion" />
-                </Picker>
-              </ThemedView>
+              {calendarView === "meditations" ? (
+                // 🧘 MODAL PARA MEDITACIÓN
+                <>
+                  <ThemedView style={styles.row}>
+                    <TextInput
+                      value={duration}
+                      placeholder="Tiempo (min)"
+                      keyboardType="numeric"
+                      onChangeText={setDuration}
+                      style={[styles.input, { flex: 1, width: 120 }]}
+                    />
+                    <Picker
+                      selectedValue={selectedMeditationType}
+                      style={[styles.input, { width: 160 }]}
+                      onValueChange={(itemValue) =>
+                        setSelectedMeditationType(itemValue)
+                      }
+                    >
+                      <Picker.Item label="Vipassana" value="vipassana" />
+                      <Picker.Item label="Body scan" value="body_scan" />
+                      <Picker.Item label="Compasión" value="compasion" />
+                    </Picker>
+                  </ThemedView>
 
-              <TextInput
-                placeholder="Notas"
-                multiline
-                value={notes}
-                onChangeText={setNotes}
-                style={[styles.input, { height: 80 }]}
-              />
+                  <TextInput
+                    placeholder="Notas"
+                    multiline
+                    value={notes}
+                    onChangeText={setNotes}
+                    style={[styles.input, { height: 80 }]}
+                  />
+                </>
+              ) : (
+                // 🌸 MODAL PARA PERÍODO
+                <>
+                  <ThemedText>Nivel de Sangrado</ThemedText>
+                  <Picker
+                    selectedValue={bleedingLevel}
+                    onValueChange={setBleedingLevel}
+                    style={[styles.input, { marginBottom: 10 }]}
+                  >
+                    <Picker.Item label="Leve" value="light" />
+                    <Picker.Item label="Moderado" value="medium" />
+                    <Picker.Item label="Abundante" value="heavy" />
+                  </Picker>
+                  <ThemedText>Color de Sangrado</ThemedText>
+
+                  <Picker
+                    selectedValue={bleedingColor}
+                    onValueChange={setBleedingColor}
+                    style={[styles.input, { marginBottom: 10 }]}
+                  >
+                    <Picker.Item label="Rojo claro" value="bright_red" />
+                    <Picker.Item label="Rojo intenso" value="dark_red" />
+                    <Picker.Item label="Marrón" value="brown" />
+                    <Picker.Item label="Rosado" value="rosado" />
+                    <Picker.Item label="Amarillento" value="yellow" />
+                  </Picker>
+                  <ThemedText>Es el inicio del período?</ThemedText>
+
+                  <Picker
+                    selectedValue={periodStart}
+                    onValueChange={setPeriodStart}
+                    style={[styles.input, { marginBottom: 10 }]}
+                  >
+                    <Picker.Item label="Si" value={true} />
+                    <Picker.Item label="No" value={false} />
+                  </Picker>
+                  <ThemedText>Es el fin del período?</ThemedText>
+
+                  <Picker
+                    selectedValue={periodEnd}
+                    onValueChange={setPeriodEnd}
+                    style={[styles.input, { marginBottom: 10 }]}
+                  >
+                    <Picker.Item label="Si" value={true} />
+                    <Picker.Item label="No" value={false} />
+                  </Picker>
+                  <ThemedText>Nivel de dolor</ThemedText>
+
+                  <Picker
+                    selectedValue={painLevel}
+                    onValueChange={setPainLevel}
+                    style={[styles.input, { marginBottom: 10 }]}
+                  >
+                    <Picker.Item label="Sin dolor" value="0" />
+                    <Picker.Item label="Dolor leve" value="1" />
+                    <Picker.Item label="Moderado" value="2" />
+                    <Picker.Item label="Fuerte" value="3" />
+                    <Picker.Item label="Muy fuerte" value="4" />
+                  </Picker>
+                  <ThemedText>Notas</ThemedText>
+
+                  <TextInput
+                    placeholder="Notas"
+                    multiline
+                    value={notes}
+                    onChangeText={setNotes}
+                    style={[styles.input, { height: 80 }]}
+                  />
+                </>
+              )}
 
               <ThemedView style={styles.buttonRow}>
                 <Pressable
                   style={styles.confirmButton}
                   onPress={() => {
-                    setModalVisible(!modalVisible);
+                    saveTrack();
+                    setModalVisible(false);
+                    setDuration("0");
+                    setNotes("");
+                    setSelectedMeditationType("vipassana");
+                    setBleedingLevel("Leve");
+                    setBleedingColor("Rosado");
+                    setPainLevel(1);
                   }}
                 >
-                  <ThemedText
-                    onPress={() => {
-                      saveTrack();
-                      setModalVisible(false);
-                      setDuration("0");
-                      setNotes("");
-                      setSelectedOption("vipassana");
-                    }}
-                    style={styles.confirmText}
-                  >
-                    Guardar
-                  </ThemedText>
+                  <ThemedText style={styles.confirmText}>Guardar</ThemedText>
                 </Pressable>
 
                 <Pressable
@@ -373,23 +484,56 @@ export default function Calendar() {
           data={selectedDateMeditation}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ThemedView style={styles.card}>
-              <ThemedText style={styles.date}>
+            <ThemedView
+              style={[
+                styles.card,
+                calendarView === "period" && styles.cardPeriod,
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.date,
+                  calendarView === "period" && styles.periodText,
+                ]}
+              >
                 {new Date(item.date).toLocaleDateString()}
               </ThemedText>
-              <ThemedText style={styles.text}>Tipo: {item.type}</ThemedText>
-              <ThemedText style={styles.text}>
+              <ThemedText
+                style={[
+                  styles.text,
+                  calendarView === "period" && styles.periodText,
+                ]}
+              >
+                Tipo: {item.type}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.text,
+                  calendarView === "period" && styles.periodText,
+                ]}
+              >
                 Duración: {item.duration} min
               </ThemedText>
               {item.comments ? (
-                <ThemedText style={styles.notes}>📝 {item.comments}</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.notes,
+                    calendarView === "period" && styles.periodNotes,
+                  ]}
+                >
+                  📝 {item.comments}
+                </ThemedText>
               ) : null}
             </ThemedView>
           )}
-        ></FlatList>
+        />
       ) : (
         <ThemedView>
-          <ThemedText>Aun no has meditado, medita nenita</ThemedText>
+          <ThemedText
+            style={calendarView === "period" ? styles.periodText : null}
+          >
+            Aún no has registrado nada para este día
+          </ThemedText>
         </ThemedView>
       )}
     </SafeAreaView>
@@ -406,6 +550,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     elevation: 2,
+  },
+  currentMonthDayPeriod: {
+    backgroundColor: "#ffd6db",
+  },
+
+  cardPeriod: {
+    backgroundColor: "#ffe0e7",
+    shadowColor: "#a7003d",
+  },
+
+  periodText: {
+    color: "#a7003d",
+  },
+
+  periodNotes: {
+    color: "#722035",
+    fontStyle: "italic",
   },
   date: {
     fontWeight: "bold",
@@ -489,7 +650,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 20,
   },
-  currentMonth: {
+  currentMonthDayMeditation: {
     backgroundColor: "#dbeafe",
   },
   otherMonth: {
