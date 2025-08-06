@@ -1,9 +1,9 @@
 export interface MeditationEntry {
   id: string;
-  type: "Vipassana" | "Body Scan" | "Compasión" | "Otra";
+  type: MeditationType;
   date: string; // ISO date (e.g. "2025-06-30")
-  duration: number;
-  comments?: string;
+  duration: string;
+  notes?: string;
   tags?: string[]; // por ejemplo ["mañana", "estrés", "respiración"]
   emotionBefore?: string; // opcional: cómo se sentía antes
   emotionAfter?: string; // opcional: cómo se sentía después
@@ -28,7 +28,7 @@ export type BleedingColor =
   | "Amarillento";
 
 export type BleedingLevel = "Leve" | "Moderado" | "Abundante";
-
+export type MeditationType = "Vipassana" | "Body Scan" | "Compasión" | "Otra";
 export type PainLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface PeriodEntry {

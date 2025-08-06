@@ -14,14 +14,16 @@ import { BlurView } from "expo-blur";
 import { Picker } from "@react-native-picker/picker";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   BleedingColor,
   BleedingLevel,
   MeditationEntry,
+  MeditationType,
   PainLevel,
   PeriodDay,
+  selectedDate,
 } from "@/types";
+import { getData, removeItem, saveItem } from "@/services/storageService";
 
 export default function Calendar() {
   const [daysInMonth, setDaysInMonth] = useState<
@@ -40,7 +42,7 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<any>(new Date());
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMeditationType, setSelectedMeditationType] =
-    useState("vipassana");
+    useState<MeditationType>("Vipassana");
   const [bleedingLevel, setBleedingLevel] = useState<BleedingLevel>("Leve");
 
   const [bleedingColor, setBleedingColor] = useState<BleedingColor>("Rosado");
@@ -49,7 +51,7 @@ export default function Calendar() {
   const [periodStart, setPeriodStart] = useState(false);
   const [periodEnd, setPeriodEnd] = useState(false);
 
-  const [duration, setDuration] = useState("0");
+  const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
   const weekDays = ["D", "L", "M", "M", "J", "V", "S"];
   const [diasMeditados, setDiasMeditados] = useState<Set<string>>(new Set());
@@ -64,32 +66,28 @@ export default function Calendar() {
       if (typeof view === "string") {
         setCalendarView(view);
       }
-
-      if (view === "meditations") {
-        AsyncStorage.getItem("meditations").then((data) => {
-          if (data) setMeditations(JSON.parse(data));
-          initializEntries();
-        });
-      }
-
-      if (view === "period") {
-        AsyncStorage.getItem("period").then((data) => {
-          if (data) setPeriod(JSON.parse(data));
-          initializEntries();
-        });
-      }
+      const fetchData = async () => {
+        if (view === "meditations") {
+          const data = await getData(calendarView);
+          if (data && data.length > 0) setMeditations(data);
+        }
+        if (view === "period") {
+          const data = await getData(calendarView);
+          if (data && data.length > 0) setPeriod(data);
+        }
+      };
+      fetchData();
     }, [view])
   );
 
   useEffect(() => {
     updateDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-  }, [currentDate]);
+    setSelectedDate(currentDate);
+  }, []);
 
   useEffect(() => {
-    if (typeof view === "string") {
-      setCalendarView(view);
-    }
-  }, [view]);
+    initializEntries();
+  }, [meditations, period]);
 
   useEffect(() => {
     if (calendarView === "meditations") {
@@ -132,19 +130,31 @@ export default function Calendar() {
   }, [selectedDate]);
 
   useEffect(() => {
-    if (calendarView === "meditations") {
-      AsyncStorage.getItem("meditations").then((data) => {
-        if (data) setMeditations(JSON.parse(data));
-        initializEntries();
-      });
-    }
-    if (calendarView === "period") {
-      AsyncStorage.getItem("period").then((data) => {
-        if (data) setPeriod(JSON.parse(data));
-        initializEntries();
-      });
-    }
+    const fetchData = async () => {
+      if (calendarView === "meditations") {
+        const data = await getData(calendarView);
+        if (data) setMeditations(data);
+      }
+      if (calendarView === "period") {
+        const data = await getData(calendarView);
+        if (data && data.length > 0) setPeriod(data);
+      }
+    };
+    fetchData();
   }, [calendarView]);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (calendarView === "meditations") {
+        const data = await getData(calendarView);
+        if (data) setMeditations(data);
+      }
+      if (calendarView === "period") {
+        const data = await getData(calendarView);
+        if (data && data.length > 0) setPeriod(data);
+      }
+    };
+    fetchData();
+  }, []);
 
   function initializEntries(): void {
     if (calendarView === "meditations") {
@@ -222,10 +232,10 @@ export default function Calendar() {
     );
   }
   function isSelectedDay(d: { day: number; monthType: string }) {
-    return selectedDate?.getDate() === d.day;
+    return selectedDate?.getDate() === d.day && d.monthType === "current";
   }
 
-  function handleSelectDay(dayInfo: { day: number; monthType: string }) {
+  function handleSelectDay(dayInfo: selectedDate) {
     if (dayInfo.monthType === "prev") {
       handlePreviousMonth();
     } else if (dayInfo.monthType === "next") {
@@ -239,15 +249,14 @@ export default function Calendar() {
     setSelectedDate(newSelectedDate);
   }
 
-  function isMeditationDay(day: number): boolean {
+  function isMeditationDay(day: selectedDate): boolean {
     const date = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      day
+      day.day
     );
-
     const formattedDate = date?.toISOString()?.split("T")[0];
-    return diasMeditados.has(formattedDate);
+    return diasMeditados.has(formattedDate) && day.monthType === "current";
   }
 
   //   const getPeriodDayStyle = (day) => {
@@ -294,7 +303,7 @@ export default function Calendar() {
 
   //TODO: pasar luego a servicio...
   const saveTrack = async () => {
-    const newMeditation = {
+    const newMeditation: MeditationEntry = {
       id: Date.now().toString(),
       type: selectedMeditationType,
       date: selectedDate.toISOString(),
@@ -315,17 +324,13 @@ export default function Calendar() {
     };
     try {
       if (calendarView === "meditations") {
-        const stored = await AsyncStorage.getItem("meditations");
-        const parsed = stored ? JSON.parse(stored) : [];
-        parsed.push(newMeditation);
-        await AsyncStorage.setItem("meditations", JSON.stringify(parsed));
-        setMeditations(parsed);
+        await saveItem(newMeditation, calendarView);
+        const data = await getData(calendarView);
+        if (data) setMeditations(data);
       } else {
-        const stored = await AsyncStorage.getItem("period");
-        const parsed = stored ? JSON.parse(stored) : [];
-        parsed.push(newPeriod);
-        await AsyncStorage.setItem("period", JSON.stringify(parsed));
-        setPeriod(parsed);
+        await saveItem(newPeriod, calendarView);
+        const data = await getData(calendarView);
+        if (data && data.length > 0) setPeriod(data);
       }
     } catch (err) {
       console.error("❌ Error guardando meditación", err);
@@ -335,19 +340,13 @@ export default function Calendar() {
   const deleteItem = async (item: MeditationEntry | PeriodDay) => {
     try {
       if (calendarView === "meditations") {
-        const stored = await AsyncStorage.getItem("meditations");
-        const parsed = stored ? JSON.parse(stored) : [];
-        const updated = parsed.filter(
-          (med: MeditationEntry) => med.id !== item.id
-        );
-        await AsyncStorage.setItem("meditations", JSON.stringify(updated));
-        setMeditations(updated);
+        await removeItem(item, "meditations");
+        const data = await getData(calendarView);
+        if (data) setMeditations(data);
       } else {
-        const stored = await AsyncStorage.getItem("period");
-        const parsed = stored ? JSON.parse(stored) : [];
-        const updated = parsed.filter((per: PeriodDay) => per.id !== item.id);
-        await AsyncStorage.setItem("period", JSON.stringify(updated));
-        setPeriod(updated);
+        await removeItem(item, "period");
+        const data = await getData(calendarView);
+        if (data) setPeriod(data);
       }
     } catch (err) {
       console.error("❌ Error guardando meditación", err);
@@ -426,7 +425,7 @@ export default function Calendar() {
                   ? styles.currentMonthDayMeditation
                   : styles.currentMonthDayPeriod
                 : styles.otherMonth,
-              isMeditationDay(d.day) &&
+              isMeditationDay(d) &&
                 calendarView === "meditations" &&
                 styles.meditationDay,
               isPeriodDay(d.day) &&
@@ -574,9 +573,9 @@ export default function Calendar() {
                   onPress={() => {
                     saveTrack();
                     setModalVisible(false);
-                    setDuration("0");
+                    setDuration("");
                     setNotes("");
-                    setSelectedMeditationType("vipassana");
+                    setSelectedMeditationType("Vipassana");
                     setBleedingLevel("Leve");
                     setBleedingColor("Rosado");
                     setPainLevel(1);
@@ -618,10 +617,8 @@ export default function Calendar() {
               <ThemedText style={[styles.text]}>
                 Duración: {item.duration} min
               </ThemedText>
-              {item.comments ? (
-                <ThemedText style={[styles.notes]}>
-                  📝 {item.comments}
-                </ThemedText>
+              {item.notes ? (
+                <ThemedText style={[styles.notes]}>📝 {item.notes}</ThemedText>
               ) : null}
               <Pressable onPress={() => deleteItem(item)}>
                 <IconSymbol name="delete.fill" size={22} color={"#11111"} />
@@ -878,14 +875,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     justifyContent: "space-between",
   },
-
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
     gap: 10,
   },
-
   confirmButton: {
     flex: 1,
     backgroundColor: "#0b7a75",
@@ -893,7 +888,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-
   cancelButton: {
     flex: 1,
     borderWidth: 1,
@@ -902,12 +896,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-
   confirmText: {
     color: "white",
     fontWeight: "bold",
   },
-
   cancelText: {
     color: "#333",
     fontWeight: "bold",

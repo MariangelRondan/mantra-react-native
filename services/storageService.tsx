@@ -1,41 +1,59 @@
+import { MeditationEntry, PeriodDay } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const saveMeditation = async (meditation: any) => {
+export const saveItem = async (
+  entry: MeditationEntry | PeriodDay,
+  category: string
+) => {
   try {
-    await AsyncStorage.setItem("meditations", JSON.stringify(meditation));
+    const stored = await AsyncStorage.getItem(category);
+    const parsed = stored ? JSON.parse(stored) : [];
+    parsed.push(entry);
+    await AsyncStorage.setItem(category, JSON.stringify(parsed));
   } catch (error) {
     console.error("Saving error", error);
   }
 };
 
-export const savePeriod = async (period: any) => {
+export const removeItem = async (
+  entry: MeditationEntry | PeriodDay,
+  category: string
+) => {
   try {
-    await AsyncStorage.setItem("period", JSON.stringify(period));
+    const stored = await AsyncStorage.getItem(category);
+    const parsed = stored ? JSON.parse(stored) : [];
+    const updated = parsed?.filter(
+      (med: MeditationEntry) => med.id !== entry?.id
+    );
+    await AsyncStorage.setItem(category, JSON.stringify(updated));
   } catch (error) {
     console.error("Saving error", error);
   }
 };
 
-export const removeTrack = async (trackingData: any) => {
+export const updateEntry = async (
+  updatedEntry: MeditationEntry | PeriodDay,
+  category: string
+) => {
   try {
-    const tracking = await AsyncStorage.getItem("meditations");
-
-    await AsyncStorage.removeItem("meditations", trackingData);
+    const stored = await AsyncStorage.getItem(category);
+    const parsed = stored ? JSON.parse(stored) : [];
+    const filtered = parsed?.filter(
+      (med: MeditationEntry) => med.id !== updatedEntry?.id
+    );
+    const updated = [...filtered, updatedEntry].sort(
+      (a, b) => new Date(a?.date).getTime() - new Date(b?.date).getTime()
+    );
+    await AsyncStorage.setItem(category, JSON.stringify(updated));
   } catch (error) {
     console.error("Saving error", error);
   }
 };
-
-export const update = async (trackingData: any) => {
+export const getData = async (category: string) => {
   try {
-    await AsyncStorage.setItem("meditations", trackingData);
-  } catch (error) {
-    console.error("Saving error", error);
-  }
-};
-export const getData = async (trackingData: any) => {
-  try {
-    await AsyncStorage.setItem("meditations", trackingData);
+    const stored = await AsyncStorage.getItem(category);
+    const parsed = stored ? JSON.parse(stored) : [];
+    return parsed;
   } catch (error) {
     console.error("Saving error", error);
   }
