@@ -361,7 +361,9 @@ export default function Calendar() {
   };
 
   return (
-    <SafeAreaView>
+    <SafeAreaView
+      style={{ flex: 1, alignContent: "center", justifyContent: "center" }}
+    >
       <ThemedView style={styles.toggleContainer}>
         <Pressable
           style={[

@@ -32,14 +32,14 @@ export default function TabLayout() {
         name="meditation/meditationHome"
         options={{
           href: null,
-          // headerShown: false, // opcional
+          headerShown: false, // opcional
         }}
       />
       <Tabs.Screen
         name="period/periodHome"
         options={{
           href: null,
-          // headerShown: false, // opcional
+          headerShown: false, // opcional
         }}
       />
       <Tabs.Screen
@@ -65,6 +65,7 @@ export default function TabLayout() {
         name="calendar"
         options={{
           title: "Calendar",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="calendar.fill" color={color} />
           ),
