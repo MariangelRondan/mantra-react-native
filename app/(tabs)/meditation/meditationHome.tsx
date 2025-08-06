@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { ThemedView } from "@/components/ThemedView";
 import SectionButton from "@/components/Button";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { meditationColors } from "@/styles/theme";
 
 export default function MeditationScreen() {
   const router = useRouter();
@@ -12,14 +13,7 @@ export default function MeditationScreen() {
   return (
     // aca va a ser la home screen de eleccion de seccion....
     <SafeAreaView style={{ flex: 1 }}>
-      <ThemedView
-        style={{
-          flex: 1,
-          padding: 16,
-          justifyContent: "space-around",
-          alignItems: "center",
-        }}
-      >
+      <ThemedView style={styles.view}>
         <SectionButton
           meditation
           text="Calendario"
@@ -52,4 +46,13 @@ export default function MeditationScreen() {
   );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  view: {
+    flex: 1,
+    padding: 16,
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    minHeight: "auto",
+    backgroundColor: meditationColors.background,
+  },
+});

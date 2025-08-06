@@ -24,6 +24,8 @@ import {
   selectedDate,
 } from "@/types";
 import { getData, removeItem, saveItem } from "@/services/storageService";
+import { meditationColors, periodColors } from "@/styles/theme";
+import { globalStyles } from "@/styles/globalStyles";
 
 export default function Calendar() {
   const [daysInMonth, setDaysInMonth] = useState<
@@ -60,6 +62,8 @@ export default function Calendar() {
   const actualMonth: number = new Date().getMonth();
   const actualYear: number = new Date().getFullYear();
   const actualDay: number = new Date().getDate();
+  const currentTheme =
+    calendarView === "meditations" ? meditationColors : periodColors;
 
   useFocusEffect(
     useCallback(() => {
@@ -361,8 +365,11 @@ export default function Calendar() {
       <ThemedView style={styles.toggleContainer}>
         <Pressable
           style={[
-            styles.toggleButton,
-            calendarView === "meditations" && styles.active,
+            globalStyles.button,
+            calendarView === "meditations" && {
+              backgroundColor: currentTheme.primary,
+            },
+            { flexDirection: "row", justifyContent: "center" },
           ]}
           onPress={() => handleToggle("meditations")}
         >
@@ -372,8 +379,11 @@ export default function Calendar() {
 
         <Pressable
           style={[
-            styles.toggleButton,
-            calendarView === "period" && styles.active,
+            globalStyles.button,
+            calendarView === "period" && {
+              backgroundColor: currentTheme.primary,
+            },
+            { flexDirection: "row", justifyContent: "center" },
           ]}
           onPress={() => handleToggle("period")}
         >
@@ -381,39 +391,36 @@ export default function Calendar() {
           <ThemedText>Período</ThemedText>
         </Pressable>
       </ThemedView>
-      <ThemedView
-        style={{
-          flexDirection: "row",
-          height: 30,
-          marginVertical: 20,
-          marginHorizontal: "auto",
-        }}
-      >
+      {/* mes con prev y next */}
+      <ThemedView style={styles.month}>
         <Pressable
           accessibilityLabel="Mes anterior"
           onPress={handlePreviousMonth}
         >
-          <IconSymbol size={28} name="back.fill" color={"#11111"} />
+          <IconSymbol size={28} name="back.fill" color={currentTheme.primary} />
         </Pressable>
-        <ThemedText style={styles.monthText}>
+        <ThemedText style={[globalStyles.title, { color: currentTheme.text }]}>
           {currentDate.toLocaleDateString("es-ES", {
             month: "long",
             year: "numeric",
           })}
         </ThemedText>
-
         <Pressable accessibilityLabel="Mes siguiente" onPress={handleNextMonth}>
-          <IconSymbol size={28} name="next.fill" color={"#11111"} />
+          <IconSymbol size={28} name="next.fill" color={currentTheme.primary} />
         </Pressable>
       </ThemedView>
+      {/*dias de la semana */}
       <ThemedView style={styles.weekRow}>
         {weekDays.map((day, i) => (
-          <ThemedText key={i} style={styles.weekDayText}>
+          <ThemedText
+            key={i}
+            style={[styles.weekDayText, { color: currentTheme.primary }]}
+          >
             {day}
           </ThemedText>
         ))}
       </ThemedView>
-
+      {/*calendario dias */}
       <ThemedView style={styles.container}>
         {daysInMonth.map((d, i) => (
           <Pressable
@@ -422,15 +429,17 @@ export default function Calendar() {
               styles.day,
               d.monthType === "current"
                 ? calendarView === "meditations"
-                  ? styles.currentMonthDayMeditation
-                  : styles.currentMonthDayPeriod
+                  ? { backgroundColor: currentTheme.light }
+                  : { backgroundColor: currentTheme.light }
                 : styles.otherMonth,
               isMeditationDay(d) &&
-                calendarView === "meditations" &&
-                styles.meditationDay,
+                calendarView === "meditations" && {
+                  backgroundColor: currentTheme.primary,
+                },
               isPeriodDay(d.day) &&
-                calendarView === "period" &&
-                styles.periodDay,
+                calendarView === "period" && {
+                  backgroundColor: currentTheme.primary,
+                },
               isCurrentDay(d) && styles.currentDay,
               isSelectedDay(d) && styles.selectedDate,
             ]}
@@ -461,7 +470,9 @@ export default function Calendar() {
                   style={styles.image}
                   source={require("@/assets/images/meditation-window.png")}
                 />
-                <ThemedText style={styles.title}>Update de hoy</ThemedText>
+                <ThemedText style={globalStyles.title}>
+                  Update de hoy
+                </ThemedText>
               </ThemedView>
 
               {calendarView === "meditations" ? (
@@ -569,7 +580,10 @@ export default function Calendar() {
 
               <ThemedView style={styles.buttonRow}>
                 <Pressable
-                  style={styles.confirmButton}
+                  style={[
+                    globalStyles.button,
+                    { backgroundColor: currentTheme.primary },
+                  ]}
                   onPress={() => {
                     saveTrack();
                     setModalVisible(false);
@@ -581,14 +595,16 @@ export default function Calendar() {
                     setPainLevel(1);
                   }}
                 >
-                  <ThemedText style={styles.confirmText}>Guardar</ThemedText>
+                  <ThemedText style={{ color: "#ffff" }}>Guardar</ThemedText>
                 </Pressable>
 
                 <Pressable
-                  style={styles.cancelButton}
+                  style={globalStyles.button}
                   onPress={() => setModalVisible(!modalVisible)}
                 >
-                  <ThemedText style={styles.cancelText}>Cancelar</ThemedText>
+                  <ThemedText style={{ color: currentTheme.text }}>
+                    Cancelar
+                  </ThemedText>
                 </Pressable>
               </ThemedView>
             </ThemedView>
@@ -598,10 +614,13 @@ export default function Calendar() {
 
       <ThemedView style={styles.buttonWrapper}>
         <Pressable
-          style={styles.buttonInner}
+          style={[
+            globalStyles.button,
+            { backgroundColor: currentTheme.primary, borderRadius: 50 },
+          ]}
           onPress={() => setModalVisible(!modalVisible)}
         >
-          <ThemedText style={styles.buttonText}>+</ThemedText>
+          <ThemedText style={globalStyles.buttonText}>+</ThemedText>
         </Pressable>
       </ThemedView>
       {selectedDateMeditation.length && calendarView === "meditations" ? (
@@ -609,7 +628,12 @@ export default function Calendar() {
           data={selectedDateMeditation}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ThemedView style={[styles.card]}>
+            <ThemedView
+              style={[
+                styles.entryItem,
+                { backgroundColor: currentTheme.light },
+              ]}
+            >
               <ThemedText style={[styles.date]}>
                 {new Date(item.date).toLocaleDateString()}
               </ThemedText>
@@ -631,38 +655,24 @@ export default function Calendar() {
           data={selectedDatePeriod}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ThemedView style={[styles.cardPeriod]}>
-              <ThemedText style={[styles.periodText]}>
+            <ThemedView
+              style={[
+                styles.entryItem,
+                { backgroundColor: currentTheme.light },
+              ]}
+            >
+              <ThemedText>
                 {new Date(item.date).toLocaleDateString()}
               </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                Color: {item.bleedingColor}
-              </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                Sangrado: {item.bleedingLevel} min
-              </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                isPeriodStart: {item.isPeriodStart}
-              </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                isPeriodEnd: {item.isPeriodEnd}
-              </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                Mood: {item.mood}
-              </ThemedText>
-              <ThemedText style={[styles.periodText]}>
-                Dolor Level: {item.painLevel}
-              </ThemedText>
+              <ThemedText>Color: {item.bleedingColor}</ThemedText>
+              <ThemedText>Sangrado: {item.bleedingLevel} min</ThemedText>
+              <ThemedText>isPeriodStart: {item.isPeriodStart}</ThemedText>
+              <ThemedText>isPeriodEnd: {item.isPeriodEnd}</ThemedText>
+              <ThemedText>Mood: {item.mood}</ThemedText>
+              <ThemedText>Dolor Level: {item.painLevel}</ThemedText>
 
               {item.notes ? (
-                <ThemedText
-                  style={[
-                    styles.notes,
-                    calendarView === "period" && styles.periodNotes,
-                  ]}
-                >
-                  📝 {item.notes}
-                </ThemedText>
+                <ThemedText style={[styles.notes]}>📝 {item.notes}</ThemedText>
               ) : null}
               <Pressable onPress={() => deleteItem(item)}>
                 <IconSymbol name="delete.fill" size={22} color={"#11111"} />
@@ -672,9 +682,7 @@ export default function Calendar() {
         />
       ) : (
         <ThemedView>
-          <ThemedText
-            style={calendarView === "period" ? styles.periodText : null}
-          >
+          <ThemedText style={styles.noEntriesTemplate}>
             Aún no has registrado nada para este día
           </ThemedText>
         </ThemedView>
@@ -684,32 +692,28 @@ export default function Calendar() {
 }
 
 const styles = StyleSheet.create({
-  card: {
+  entryItem: {
     padding: 12,
     marginBottom: 10,
     borderRadius: 10,
-    backgroundColor: "#e3fce3",
+    marginVertical: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     elevation: 2,
   },
-  currentMonthDayPeriod: {
-    backgroundColor: "#ffd6db",
+  month: {
+    flexDirection: "row",
+    height: 50,
+    marginTop: 20,
+    alignItems: "center",
+    justifyContent: "space-evenly",
   },
-
-  cardPeriod: {
-    backgroundColor: "#ffe0e7",
-    shadowColor: "#a7003d",
-  },
-
-  periodText: {
-    color: "#a7003d",
-  },
-
-  periodNotes: {
-    color: "#722035",
-    fontStyle: "italic",
+  noEntriesTemplate: {
+    justifyContent: "center",
+    padding: 20,
+    textAlign: "center",
+    fontSize: 18,
   },
   date: {
     fontWeight: "bold",
@@ -729,35 +733,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
-  buttonInner: {
-    backgroundColor: "#009999",
-    width: 50,
-    height: 50,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonClose: {
-    backgroundColor: "#345636",
-    width: 50,
-    height: 50,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   currentDay: {
     borderColor: "#811382",
     borderStyle: "dashed",
     borderWidth: 2,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 30,
-  },
-
-  modalText: {
-    marginBottom: 15,
-    textAlign: "center",
   },
   weekRow: {
     flexDirection: "row",
@@ -775,7 +754,7 @@ const styles = StyleSheet.create({
     width: 40,
     textAlign: "center",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 18,
   },
   container: {
     flexDirection: "row",
@@ -793,17 +772,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 20,
   },
-  currentMonthDayMeditation: {
-    backgroundColor: "#dbeafe",
-  },
   otherMonth: {
     backgroundColor: "#f1f5f9",
     opacity: 0.5,
   },
-  meditationDay: {
-    backgroundColor: "#13867e",
-  },
-  periodDay: { backgroundColor: "#a51c30" },
   selectedDate: {
     shadowColor: "#811382",
     shadowOffset: { width: 0, height: 0 },
@@ -817,17 +789,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
     marginVertical: 12,
-  },
-  toggleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: "#eee",
-    gap: 6,
-  },
-  active: {
-    backgroundColor: "#13867e",
   },
   modalOverlay: {
     flex: 1,
@@ -856,12 +817,6 @@ const styles = StyleSheet.create({
     height: 80,
     resizeMode: "contain",
   },
-  title: {
-    fontWeight: "600",
-    fontSize: 18,
-    marginVertical: 10,
-    textAlign: "center",
-  },
   input: {
     backgroundColor: "#F0F0F0",
     borderRadius: 10,
@@ -880,28 +835,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 10,
     gap: 10,
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: "#0b7a75",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  cancelButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  confirmText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  cancelText: {
-    color: "#333",
-    fontWeight: "bold",
   },
 });

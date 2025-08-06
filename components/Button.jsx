@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
+import { meditationColors, periodColors } from "@/styles/theme";
 
 export default function SectionButton(props) {
   const { icon, text, meditation, period, onPress } = props;
@@ -16,21 +17,14 @@ export default function SectionButton(props) {
   // Determinar estilos por tipo
   const buttonStyles = meditation
     ? {
-        backgroundColor: "#D1F3D1",
-        borderColor: "#5DAE5D",
-        textColor: "#256B25",
-      }
-    : period
-    ? {
-        backgroundColor: "#FAD2D2",
-        borderColor: "#D64848",
-        textColor: "#7B1F1F",
+        backgroundColor: meditationColors.primary,
+        borderColor: meditationColors.light,
+        textColor: meditationColors.light,
       }
     : {
-        backgroundColor: "#E0E0E0",
-        borderColor: "#A0A0A0",
-        textColor: "#333",
-        width: 50,
+        backgroundColor: periodColors.primary,
+        borderColor: periodColors.light,
+        textColor: periodColors.light,
       };
 
   return (
@@ -57,13 +51,13 @@ export default function SectionButton(props) {
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: "row",
     borderWidth: 2,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: "center",
     margin: 8,
+    width: 120,
   },
   iconContainer: {
     marginRight: 10,
@@ -75,5 +69,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
   },
 });
