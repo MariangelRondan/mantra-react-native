@@ -9,11 +9,11 @@ export default function ProfileView() {
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/100" }}
+          source={require("@/assets/images/girl-meditation.jpg")}
           style={styles.avatar}
         />
         <ThemedText type="title">Mariangel Rondan</ThemedText>
-        <ThemedText type="subtitle">mariangel@example.com</ThemedText>
+        <ThemedText type="subtitle">mariangel@gmail.com</ThemedText>
 
         <Pressable style={styles.button}>
           <ThemedText style={styles.buttonText}>Editar Perfil</ThemedText>

@@ -1,7 +1,5 @@
-import { Image } from "expo-image";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-
 import { ThemedView } from "@/components/ThemedView";
 import SectionButton from "@/components/Button";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,7 +9,6 @@ export default function MeditationScreen() {
   const router = useRouter();
 
   return (
-    // aca va a ser la home screen de eleccion de seccion....
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.view}>
         <SectionButton
@@ -24,22 +21,16 @@ export default function MeditationScreen() {
             })
           }
         ></SectionButton>
-
         <SectionButton
           meditation
           text="Mantras"
-          onPress={() =>
-            router.push({
-              pathname: "/(tabs)/calendar",
-              params: { view: "meditations" },
-            })
-          }
+          onPress={() => router.push("/meditation/Mantras")}
         ></SectionButton>
 
         <SectionButton
           meditation
           text="Guía"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() => router.push("/meditation/MeditationGuide")}
         ></SectionButton>
       </ThemedView>
     </SafeAreaView>

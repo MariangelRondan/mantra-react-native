@@ -3,12 +3,12 @@ import { useRouter } from "expo-router";
 import { ThemedView } from "@/components/ThemedView";
 import SectionButton from "@/components/Button";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { periodColors } from "@/styles/theme";
 
 export default function PeriodHome() {
   const router = useRouter();
 
   return (
-    // aca va a ser la home screen de eleccion de seccion....
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView
         style={{
@@ -16,6 +16,7 @@ export default function PeriodHome() {
           padding: 16,
           justifyContent: "space-around",
           alignItems: "center",
+          backgroundColor: periodColors.light,
         }}
       >
         <SectionButton
@@ -32,13 +33,13 @@ export default function PeriodHome() {
         <SectionButton
           period
           text="Ovulación"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() => router.push("/period/Ovulacion")}
         ></SectionButton>
 
         <SectionButton
           period
           text="Insights"
-          onPress={() => router.push("/(tabs)/calendar")}
+          onPress={() => router.push("/period/Insigths")}
         ></SectionButton>
       </ThemedView>
     </SafeAreaView>

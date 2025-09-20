@@ -5,7 +5,6 @@ import { meditationColors, periodColors } from "@/styles/theme";
 export default function SectionButton(props) {
   const { icon, text, meditation, period, onPress } = props;
 
-  // Icono con color opcional
   const iconComponent = icon ? (
     <Image
       resizeMode="contain"
@@ -14,7 +13,6 @@ export default function SectionButton(props) {
     />
   ) : null;
 
-  // Determinar estilos por tipo
   const buttonStyles = meditation
     ? {
         backgroundColor: meditationColors.primary,
